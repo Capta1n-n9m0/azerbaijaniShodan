@@ -1,6 +1,4 @@
 import ipaddress
-import nmap
-import threading
 import time
 import subprocess
 import shlex
@@ -24,15 +22,16 @@ def get_next_az_host(host: ipaddress.IPv4Address = None):
 
 
 def scan_host(host):
-    print("started")
-    nm = nmap.PortScanner()
-    host_str = f"{host}"
-    print(host_str)
-    nm.scan(f"{host_str}", arguments="-T4 -v -A")
-    print(nm.command_line())
-    with open(f"{host_str}-scan.xml", "w") as f:
-        f.write(str(nm.get_nmap_last_output(), "utf-8"))
-    print(f"{host_str}:{nm[host_str].state()}")
+    # print("started")
+    # nm = nmap.PortScanner()
+    # host_str = f"{host}"
+    # print(host_str)
+    # nm.scan(f"{host_str}", arguments="-T4 -v -A")
+    # print(nm.command_line())
+    # with open(f"{host_str}-scan.xml", "w") as f:
+    #     f.write(str(nm.get_nmap_last_output(), "utf-8"))
+    # print(f"{host_str}:{nm[host_str].state()}")
+    ...
 
 def main():
     # for host in get_next_az_host():
