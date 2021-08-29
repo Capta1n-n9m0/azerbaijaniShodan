@@ -2,6 +2,10 @@ import ipaddress
 import time
 import subprocess
 import shlex
+import multiprocessing
+from icmplib import ping
+
+CONCURRENT_SCANS = 8
 
 def get_next_az_host(host: ipaddress.IPv4Address = None):
     with open("IP2LOCATION-LITE-DB-AZ-NETS.txt", "r") as az:
@@ -31,7 +35,13 @@ def scan_host(host):
     # with open(f"{host_str}-scan.xml", "w") as f:
     #     f.write(str(nm.get_nmap_last_output(), "utf-8"))
     # print(f"{host_str}:{nm[host_str].state()}")
-    ...
+    print(f"Scan of {host} started")
+    if ping(address=host, count=4, interval=0.5).is_alive:
+        print(f"{host} is up")
+        subprocess.run(shlex.split(f"nmap -T4 -A -v -oX {host}-scan.xml {host}"))
+    else:
+        print(f"{host} is down")
+    print(f"Scan of {host} finished")
 
 def main():
     # for host in get_next_az_host():
@@ -40,16 +50,31 @@ def main():
     #         print(f"{host}:{nm[host].state()}")
     #         print(nm.get_nmap_last_output())
     process_pool = list()
-    host_gen = get_next_az_host()
-    for _ in range(8):
+    host_gen = get_next_az_host(ipaddress.IPv4Address("37.26.7.237"))
+    for _ in range(CONCURRENT_SCANS):
         next_host = next(host_gen)
-        process_pool.append(subprocess.Popen(shlex.split(f"nmap -T4 -A -v -oX {next_host}-scan.xml {next_host}")))
+        process_pool.append(multiprocessing.Process(target=scan_host, args=(f"{next_host}",)))
+        # process_pool.append(subprocess.Popen(shlex.split(f"nmap -T4 -A -v -oX {next_host}-scan.xml {next_host}")))
+    for i in range(CONCURRENT_SCANS):
+        process_pool[i].start()
     while True:
-        for i in range(len(process_pool)):
-            if process_pool[i].poll() != None:
-                next_host = next(host_gen)
-                process_pool[i] = subprocess.Popen(shlex.split(f"nmap -T4 -A -v -oX {next_host}-scan.xml {next_host}"))
-            time.sleep(0.1)
+        try:
+            for i in range(len(process_pool)):
+                if process_pool[i].is_alive():
+                    next_host = next(host_gen)
+                    process_pool[i] = multiprocessing.Process(target=scan_host, args=(f"{next_host}",))
+                    process_pool[i].start()
+                else:
+                    ...
+                time.sleep(0.1)
+        except KeyboardInterrupt:
+            print("Caught keyboard interrupt")
+            break
+        except Exception as e:
+            print("Caught exception")
+            print(e)
+            exit(1)
+    print("Exiting")
 
 
 if __name__ == '__main__':
