@@ -60,7 +60,7 @@ def main():
     while True:
         try:
             for i in range(len(process_pool)):
-                if process_pool[i].is_alive():
+                if not process_pool[i].is_alive():
                     next_host = next(host_gen)
                     process_pool[i] = multiprocessing.Process(target=scan_host, args=(f"{next_host}",))
                     process_pool[i].start()
